@@ -11,6 +11,7 @@ import CallToAction from './CallToAction'
 import Footer from './Footer'
 import ScrollToTopButton from './ScrollToTopButton'
 import { Button } from "@/components/ui/button"
+import Calendar from './Calendar'
 
 export default function LandingPage() {
   return (
@@ -32,17 +33,18 @@ export default function LandingPage() {
           <DailyQuestions />
         </Element>
 
-        <Element name="cta" className="w-full">
-          <CallToAction />
+        <Element name="calendar" className="w-full">
+          <div className="container mx-auto px-4 py-12">
+            <h2 className="text-3xl font-bold mb-6 text-center">Your Progress Calendar</h2>
+            <div className="max-w-md mx-auto"> {/* Added this wrapper */}
+              <Calendar />
+            </div>
+          </div>
         </Element>
 
-        <div className="text-center py-8">
-          <ScrollLink to="daily" smooth={true} duration={500}>
-            <Button className="bg-purple-500 text-white font-bold py-2 px-4 rounded-full hover:bg-purple-600 transition-colors">
-              Go to Daily Questions
-            </Button>
-          </ScrollLink>
-        </div>
+        {/* <Element name="cta" className="w-full">
+          <CallToAction />
+        </Element> */}
       </main>
 
       <Footer />
