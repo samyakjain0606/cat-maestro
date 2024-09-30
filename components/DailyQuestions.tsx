@@ -4,8 +4,21 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { Calculator, Brain, Book, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { isLoggedIn } from '@/utils/auth';
 
 export default function DailyQuestions() {
+  // const router = useRouter();
+  // useEffect(() => {
+  //   // Check if the user is logged in when the component mounts
+  //   if (!isLoggedIn()) {
+  //     // You must wait for the router to be ready before navigating
+  //     if (router.isReady) {
+  //       router.push('/login');
+  //     }
+  //   }
+  // }, [router]);
   return (
     <section className="w-full px-4 md:px-8 py-20 bg-gray-800 bg-opacity-50 rounded-lg">
       <motion.h2
