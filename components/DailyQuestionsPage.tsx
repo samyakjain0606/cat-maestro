@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import { ChevronRight, ChevronLeft, Loader2 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
@@ -312,71 +312,73 @@ export default function DailyQuestionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
-        <div className="flex justify-between items-center p-4 bg-gray-50 border-b">
-          <h1 className="text-2xl font-bold">{activeSection} Questions</h1>
-          <div className="text-lg font-semibold text-gray-700">
-            Time Left: {formatTime(timeLeft)}
+    <Suspense fallback={<div>Loading...</div>}>
+      <div className="min-h-screen bg-gray-100 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="flex justify-between items-center p-4 bg-gray-50 border-b">
+            <h1 className="text-2xl font-bold">{activeSection} Questions</h1>
+            <div className="text-lg font-semibold text-gray-700">
+              Time Left: {formatTime(timeLeft)}
+            </div>
+          </div>
+
+          <div className="p-6">
+            {!isSubmitted ? (
+              <>
+                <QuestionContent
+                  question={currentQuestion}
+                  onAnswerSelect={handleAnswerSelect}
+                  selectedAnswer={selectedAnswers[currentQuestion.id]}
+                />
+                <div className="mt-4">
+                  <Button onClick={handleSubmit}>Submit All Answers</Button>
+                </div>
+              </>
+            ) : showReview ? (
+              <ReviewAnswers
+                questions={questions[activeSection]}
+                selectedAnswers={selectedAnswers}
+                onGoHome={handleGoHome}
+              />
+            ) : (
+              <ResultsSummary 
+                results={calculateResults(activeSection)} 
+                onGoHome={handleGoHome}
+              />
+            )}
+          </div>
+
+          <div className="flex justify-between p-4 bg-gray-50 border-t">
+            {!isSubmitted ? (
+              <>
+                <Button 
+                  onClick={handlePreviousQuestion} 
+                  disabled={currentQuestionIndex === 0}
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" /> Previous
+                </Button>
+                {currentQuestionIndex === questions[activeSection].length - 1 ? (
+                  <Button onClick={handleSubmit}>
+                    Submit Answers
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={handleNextQuestion} 
+                    disabled={currentQuestionIndex === questions[activeSection].length - 1}
+                  >
+                    Next <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                )}
+              </>
+            ) : (
+              <Button onClick={handleReviewAnswers} disabled={showReview}>
+                Review Answers
+              </Button>
+            )}
           </div>
         </div>
-
-        <div className="p-6">
-          {!isSubmitted ? (
-            <>
-              <QuestionContent
-                question={currentQuestion}
-                onAnswerSelect={handleAnswerSelect}
-                selectedAnswer={selectedAnswers[currentQuestion.id]}
-              />
-              <div className="mt-4">
-                <Button onClick={handleSubmit}>Submit All Answers</Button>
-              </div>
-            </>
-          ) : showReview ? (
-            <ReviewAnswers
-              questions={questions[activeSection]}
-              selectedAnswers={selectedAnswers}
-              onGoHome={handleGoHome}
-            />
-          ) : (
-            <ResultsSummary 
-              results={calculateResults(activeSection)} 
-              onGoHome={handleGoHome}
-            />
-          )}
-        </div>
-
-        <div className="flex justify-between p-4 bg-gray-50 border-t">
-          {!isSubmitted ? (
-            <>
-              <Button 
-                onClick={handlePreviousQuestion} 
-                disabled={currentQuestionIndex === 0}
-              >
-                <ChevronLeft className="mr-2 h-4 w-4" /> Previous
-              </Button>
-              {currentQuestionIndex === questions[activeSection].length - 1 ? (
-                <Button onClick={handleSubmit}>
-                  Submit Answers
-                </Button>
-              ) : (
-                <Button 
-                  onClick={handleNextQuestion} 
-                  disabled={currentQuestionIndex === questions[activeSection].length - 1}
-                >
-                  Next <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              )}
-            </>
-          ) : (
-            <Button onClick={handleReviewAnswers} disabled={showReview}>
-              Review Answers
-            </Button>
-          )}
-        </div>
       </div>
-    </div>
+    </Suspense>
   )
 }
 

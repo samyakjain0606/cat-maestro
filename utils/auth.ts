@@ -3,10 +3,6 @@
 import { NextApiRequest, NextApiResponse, NextApiHandler } from 'next';
 import jwt from 'jsonwebtoken';
 import Cookies from 'js-cookie';
-// import jwtDecode from 'jwt-decode';
-// import { decode as jwtDecode } from 'jwt-decode';
-// import * as jwtDecode from 'jwt-decode';
-// import jwt_decode from 'jwt-decode';
 import { jwtDecode } from "jwt-decode";
 
 export interface DecodedToken {
@@ -16,31 +12,36 @@ export interface DecodedToken {
   exp: number; // Expiry
 }
 
+// Extend NextApiRequest to include user property
+declare module 'next' {
+  interface NextApiRequest {
+    user?: {
+      id: string;
+      username: string;
+    };
+  }
+}
+
 export const getCookie = (name: string): string | undefined => {
     return Cookies.get(name);
 };
 
 export const isLoggedIn = (): boolean => {
-    // Check for the presence of a session token in cookies
-    // This assumes you have a way to access cookies on the client side
-    console.log("here 22")
     const token = getCookie('token');
-    console.log(token)
     return !!token;
 };
-// This function should be used in a server-side context only
+
 export const getUserIdFromToken = (token: string | undefined): string | null => {
-    console.log("token inside getUserIdToken");
-    console.log(token);
+    if (!token) {
+        return null;
+    }
     try {
         const decoded: DecodedToken = jwtDecode(token);
-    //   const { default: jwt_decode } = require("jwt-decode");
-    //   const tokenDecoded = jwt_decode(token);
-      console.log(decoded.sub);
-      return decoded.sub;
+        console.log(decoded.sub);
+        return decoded.sub;
     } catch (error) {
-      console.error('Error decoding token:', error);
-      return null;
+        console.error('Error decoding token:', error);
+        return null;
     }
 };
 
