@@ -65,8 +65,11 @@ export default function CustomizedTests() {
               <label htmlFor="duration" className="block text-sm font-medium text-gray-300 mb-1">Duration (minutes)</label>
               <input type="number" id="duration" className="w-full bg-gray-600 text-white rounded-md px-3 py-2" placeholder="180" />
             </div>
-            <button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-2 px-4 rounded-full hover:from-purple-600 hover:to-pink-600 transition-all duration-300">
-              Generate Custom Test
+            <button
+              disabled
+              className="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-full opacity-50 cursor-not-allowed"
+            >
+              Coming Soon
             </button>
           </form>
         </motion.div>
