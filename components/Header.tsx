@@ -2,7 +2,11 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
+// import { useRouter } from 'next/router';
 import { Link as ScrollLink } from 'react-scroll'
+import { Button } from "@/components/ui/button"
+import Link from 'next/link';
+
 // import { Auth } from './Auth'
 
 export default function Header() {
@@ -35,6 +39,16 @@ export default function Header() {
           <ScrollLink to="cta" smooth={true} className="cursor-pointer hover:text-purple-300 transition-colors">
             Get Started
           </ScrollLink>
+          <Link href="/signup" passHref>
+            <Button className="text-white bg-transparent border border-purple-500 hover:bg-purple-500 hover:border-transparent transition ease-in-out duration-300 py-2 px-4 rounded-full">
+              Sign Up
+            </Button>
+          </Link>
+          <Link href="/login" passHref>
+            <Button className="text-white bg-purple-500 hover:bg-purple-600 transition ease-in-out duration-300 py-2 px-4 rounded-full">
+              Login
+            </Button>
+          </Link>
         </motion.div>
       </nav>
     </header>

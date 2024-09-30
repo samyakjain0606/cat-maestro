@@ -10,6 +10,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Database } from '@/lib/database.types'
 import { saveDailyChallengeScore } from '@/lib/db'
+import { getCookie, getUserIdFromToken, isLoggedIn } from '@/utils/auth'
 
 // Update the Question type to match the new table structure
 type Question = {
@@ -80,20 +81,82 @@ export default function DailyQuestionsPage() {
   const [showReview, setShowReview] = useState(false)
   const [isLoading, setIsLoading] = useState(true) // Add this new state
   const router = useRouter()
+  const [userId, setUserId] = useState<string | null>(null)
   const supabase = createClientComponentClient<Database>()
   const [questions, setQuestions] = useState<Record<string, Question[]>>({})
+  const [previousScore, setPreviousScore] = useState<number | null>(null)
+
+  const handleGoHome = () => {
+    router.push('/')
+  }
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prevTime) => (prevTime > 0 ? prevTime - 1 : 0))
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [])
+    if (timeLeft > 0) {
+      const timer = setTimeout(() => {
+        setTimeLeft(timeLeft - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      // Timer has reached zero, automatically submit
+      handleSubmit();
+    }
+  }, [timeLeft]);
 
   useEffect(() => {
     fetchQuestions()
   }, [])
+
+  useEffect(() => {
+    console.log('Checking if user is logged in...');
+    if (!isLoggedIn()) {
+      console.log('User is not logged in, redirecting to login page...');
+      window.location.href = '/login';
+    } else {
+      console.log('User is logged in, checking for previous attempt...');
+      const token = getCookie('token');
+      const id = getUserIdFromToken(token);
+      console.log("HERE")
+      console.log(id);
+      if (id === null) {
+        console.error('Error: Unable to retrieve user ID from token');
+        router.push('/login');
+        return;
+      }
+      setUserId(id); // Set the userId state
+      checkPreviousAttempt(id);
+      fetchQuestions();
+    }
+  }, []);
+
+  const checkPreviousAttempt = async (userId : string) => {
+    // const userId = "f4a61524-d89f-4eaa-b8e4-09021888f2a4";
+    console.log(`Current user ID: ${userId}`);
+
+    const today = new Date().toISOString().split('T')[0];
+    console.log(`Today's date: ${today}`);
+
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from(`${activeSection.toLowerCase()}_scores`)
+      .select('*')
+      .eq('user_id', userId)
+      .eq('date', today)  // Add this line to filter by today's date
+      .single();
+
+    setIsLoading(false);
+    if (error) {
+      console.error('Error fetching previous attempt:', error);
+      return;
+    }
+
+    if (data) {
+      console.log('User has already submitted today\'s questions:', data);
+      setIsSubmitted(true);
+      setPreviousScore(data.score);
+    } else {
+      console.log('No previous attempt found for today.');
+    }
+  };
 
   const fetchQuestions = async () => {
     setIsLoading(true) // Set loading to true when starting to fetch
@@ -145,6 +208,20 @@ export default function DailyQuestionsPage() {
     )
   }
 
+  if (isSubmitted && previousScore !== null) {
+    return (
+      <div className="min-h-screen bg-gray-100 py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="p-6 text-center">
+            <h2 className="text-2xl font-bold mb-4">You've already attempted today's questions</h2>
+            <p className="text-xl mb-6">Your score: {previousScore} / {questions[activeSection]?.length || 0}</p>
+            <Button onClick={handleGoHome}>Go to Home Page</Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (!questions[activeSection] || questions[activeSection].length === 0) {
     return <div className="text-center text-lg font-semibold">No questions available for this section.</div>
   }
@@ -186,37 +263,52 @@ export default function DailyQuestionsPage() {
   }
 
   const handleSubmit = async () => {
-    const quantScore = calculateScore('QUANT')
-    const lrdiScore = calculateScore('LRDI')
-    const varcScore = calculateScore('VARC')
+    const sectionScore = calculateScore(activeSection)
+    // const lrdiScore = calculateScore('LRDI')
+    // const varcScore = calculateScore('VARC')
 
     try {
-      await saveDailyChallengeScore(
-        "abc",
-        new Date().toISOString().split('T')[0],
-        quantScore,
-        lrdiScore,
-        varcScore,
-        selectedAnswers,
-        selectedAnswers,
-        selectedAnswers
-      )
+        if (userId === null) {
+            console.error('Error: Unable to retrieve user ID from token');
+            router.push('/login');
+            return;
+        }
+        const payload = {
+            user_id: userId,
+            score: sectionScore,
+            date: new Date().toISOString().split('T')[0]  // Change this line
+        };
+        const { data, error } = await supabase
+        .from(`${activeSection.toLowerCase()}_scores`)
+        .insert([payload]);
+
+        if (error) {
+            console.error('Error saving score:', error);
+        } else {
+            console.log('Score saved successfully:', data);
+        }
+
+      setIsSubmitted(true);
+    //   await saveDailyChallengeScore(
+    //     "abc",
+    //     new Date().toISOString().split('T')[0],
+    //     quantScore,
+    //     lrdiScore,
+    //     varcScore,
+    //     selectedAnswers,
+    //     selectedAnswers,
+    //     selectedAnswers
+    //   )
       console.log("Scores saved successfully")
     } catch (error) {
       console.error("Error saving score:", error)
-      // Instead of showing an alert, we'll log the error and continue
     }
 
-    // Move this outside of the try-catch block to ensure it always executes
     setIsSubmitted(true)
   }
 
   const handleReviewAnswers = () => {
     setShowReview(true)
-  }
-
-  const handleGoHome = () => {
-    router.push('/')
   }
 
   return (
