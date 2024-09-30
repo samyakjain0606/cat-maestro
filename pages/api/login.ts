@@ -52,6 +52,6 @@ export default async function login(req: NextApiRequest, res: NextApiResponse) {
 
     res.status(200).json({ username: userData.username, id: userData.id });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Error in 55th line" });
   }
 }

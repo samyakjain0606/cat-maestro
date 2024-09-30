@@ -21,7 +21,6 @@ export default async function signup(req: NextApiRequest, res: NextApiResponse) 
   try {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log("here 24")
 
     // Insert the user into the database
     const { data, error } = await supabase
@@ -58,6 +57,6 @@ export default async function signup(req: NextApiRequest, res: NextApiResponse) 
       res.status(201).json({ username: data[0].username, id: data[0].id });
   } catch (error) {
     console.error('Signup error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Sign up error" });
   }
 }
