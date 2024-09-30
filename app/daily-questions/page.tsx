@@ -5,7 +5,7 @@ import DailyQuestionsPage from '../../components/DailyQuestionsPage'
 
 export default function DailyQuestionsRoute() {
   const searchParams = useSearchParams()
-  const section = searchParams.get('section')
+  const section = searchParams?.get('section') ?? 'QUANT'
 
-  return <DailyQuestionsPage initialSection={section} />
+  return <DailyQuestionsPage />
 }
