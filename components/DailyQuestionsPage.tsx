@@ -11,8 +11,9 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Database } from '@/lib/database.types'
 import { saveDailyChallengeScore } from '@/lib/db'
 import { getCookie, getUserIdFromToken, isLoggedIn } from '@/utils/auth'
+import Image from 'next/image';
 
-// Update the Question type to match the new table structure
+// Update the Question type to include two image URLs
 type Question = {
   id: string;
   category: string;
@@ -23,6 +24,7 @@ type Question = {
   option_d: string;
   correct_answer: string;
   image_url: string | null;
+  image_url_2: string | null; // Add this line for the second image
 }
 
 // Update the component props types
@@ -34,6 +36,14 @@ type QuestionContentProps = {
 
 function QuestionContent({ question, onAnswerSelect, selectedAnswer }: QuestionContentProps) {
   const options = [question.option_a, question.option_b, question.option_c, question.option_d]
+  
+  // Format the Google Drive image URLs
+  const formatImageUrl = (url: string | null) => 
+    url ? `https://drive.google.com/uc?export=view&id=${url.split('/')[5]}` : null;
+
+  const formattedImageUrl1 = formatImageUrl(question.image_url);
+  const formattedImageUrl2 = formatImageUrl(question.image_url_2);
+
   return (
     <motion.div
       key={question.id}
@@ -43,27 +53,48 @@ function QuestionContent({ question, onAnswerSelect, selectedAnswer }: QuestionC
       transition={{ duration: 0.3 }}
       className="space-y-6"
     >
-      <div className="flex flex-col md:flex-row md:space-x-6">
-        <div className="flex-1">
-          <h2 className="text-xl font-semibold mb-4">{question.question}</h2>
-          <RadioGroup
-            value={selectedAnswer}
-            onValueChange={(value) => onAnswerSelect(question.id, value)}
-            className="space-y-2"
-          >
-            {options.map((option, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <RadioGroupItem value={option} id={`option-${index}`} />
-                <Label htmlFor={`option-${index}`}>{option}</Label>
-              </div>
-            ))}
-          </RadioGroup>
-        </div>
-        {question.image_url && (
-          <div className="mt-4 md:mt-0 md:w-1/3">
-            <img src={question.image_url} alt="Question visual" className="w-full h-auto rounded-lg shadow-md" />
+      <div className={`w-full mb-6 ${formattedImageUrl2 ? 'flex flex-col md:flex-row gap-4' : ''}`}>
+        {formattedImageUrl1 && (
+          <div className={formattedImageUrl2 ? 'w-full md:w-1/2' : 'w-full'}>
+            <Image
+              src={formattedImageUrl1}
+              alt="Question visual 1"
+              width={formattedImageUrl2 ? 1000 : 2000}
+              height={formattedImageUrl2 ? 750 : 1500}
+              layout="responsive"
+              objectFit="contain"
+              className="rounded-lg shadow-md"
+            />
           </div>
         )}
+        {formattedImageUrl2 && (
+          <div className="w-full md:w-1/2">
+            <Image
+              src={formattedImageUrl2}
+              alt="Question visual 2"
+              width={1000}
+              height={750}
+              layout="responsive"
+              objectFit="contain"
+              className="rounded-lg shadow-md"
+            />
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col">
+        <h2 className="text-xl font-semibold mb-4">{question.question}</h2>
+        <RadioGroup
+          value={selectedAnswer}
+          onValueChange={(value) => onAnswerSelect(question.id, value)}
+          className="space-y-2"
+        >
+          {options.map((option, index) => (
+            <div key={index} className="flex items-center space-x-2">
+              <RadioGroupItem value={option} id={`option-${index}`} />
+              <Label htmlFor={`option-${index}`}>{option}</Label>
+            </div>
+          ))}
+        </RadioGroup>
       </div>
     </motion.div>
   )
@@ -159,27 +190,38 @@ export default function DailyQuestionsPage() {
   };
 
   const fetchQuestions = async () => {
-    setIsLoading(true) // Set loading to true when starting to fetch
+    setIsLoading(true)
     const { data, error } = await supabase
       .from('questions')
       .select('*')
     
     if (error) {
       console.error('Error fetching questions:', error)
-      setIsLoading(false) // Set loading to false even if there's an error
+      setIsLoading(false)
       return
     }
 
-    const groupedQuestions = (data as Question[]).reduce((acc, question) => {
-      if (!acc[question.category]) {
-        acc[question.category] = []
+    const allQuestions = data as Question[]
+    const categories = ['VARC', 'LRDI', 'QUANT']
+    let groupedQuestions: Record<string, Question[]> = {}
+
+    categories.forEach(category => {
+      let categoryQuestions = allQuestions.filter(q => q.category === category)
+
+      if (category === 'VARC' || category === 'LRDI') {
+        const questionsWithImages = categoryQuestions.filter(q => q.image_url)
+        if (questionsWithImages.length > 0) {
+          const randomImageUrl = questionsWithImages[Math.floor(Math.random() * questionsWithImages.length)].image_url
+          categoryQuestions = categoryQuestions.filter(q => q.image_url === randomImageUrl)
+        }
       }
-      acc[question.category].push(question)
-      return acc
-    }, {} as Record<string, Question[]>)
+
+      // Limit to 5 questions per category
+      groupedQuestions[category] = categoryQuestions.slice(0, 5)
+    })
 
     setQuestions(groupedQuestions)
-    setIsLoading(false) // Set loading to false after questions are fetched and processed
+    setIsLoading(false)
   }
 
   const handleAnswerSelect = (questionId: string, answer: string) => {
