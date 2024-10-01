@@ -194,6 +194,7 @@ export default function DailyQuestionsPage() {
     const { data, error } = await supabase
       .from('questions')
       .select('*')
+      .eq('category', initialSection)
     
     if (error) {
       console.error('Error fetching questions:', error)
@@ -216,7 +217,13 @@ export default function DailyQuestionsPage() {
         }
       }
 
-      // Limit to 5 questions per category
+      // Shuffle all category questions
+      for (let i = categoryQuestions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [categoryQuestions[i], categoryQuestions[j]] = [categoryQuestions[j], categoryQuestions[i]];
+      }
+
+      // Select the first 5 questions (or all if less than 5)
       groupedQuestions[category] = categoryQuestions.slice(0, 5)
     })
 
