@@ -12,6 +12,7 @@ import { Database } from '@/lib/database.types'
 import { saveDailyChallengeScore } from '@/lib/db'
 import { getCookie, getUserIdFromToken, isLoggedIn } from '@/utils/auth'
 import Image from 'next/image';
+import { useLocalStorage } from '@/hooks/useLocalStorage'; // Add this import
 
 // Update the Question type to include two image URLs
 type Question = {
@@ -116,6 +117,8 @@ export default function DailyQuestionsPage() {
   const supabase = createClientComponentClient<Database>()
   const [questions, setQuestions] = useState<Record<string, Question[]>>({})
   const [previousScore, setPreviousScore] = useState<number | null>(null)
+  const [dailyQuestionsDate, setDailyQuestionsDate] = useLocalStorage<string>('dailyQuestionsDate', '');
+  const [storedQuestions, setStoredQuestions] = useLocalStorage<Record<string, Question[]>>('dailyQuestions', {});
 
   const handleGoHome = () => {
     router.push('/')
@@ -134,8 +137,15 @@ export default function DailyQuestionsPage() {
   }, [timeLeft]);
 
   useEffect(() => {
-    fetchQuestions()
-  }, [])
+    const today = new Date().toISOString().split('T')[0];
+    if (dailyQuestionsDate !== today || Object.keys(storedQuestions).length === 0) {
+      fetchQuestions();
+    } else {
+      console.log('Using stored questions:', storedQuestions);
+      setQuestions(storedQuestions);
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     console.log('Checking if user is logged in...');
@@ -160,7 +170,6 @@ export default function DailyQuestionsPage() {
   }, []);
 
   const checkPreviousAttempt = async (userId : string) => {
-    // const userId = "f4a61524-d89f-4eaa-b8e4-09021888f2a4";
     console.log(`Current user ID: ${userId}`);
 
     const today = new Date().toISOString().split('T')[0];
@@ -191,10 +200,18 @@ export default function DailyQuestionsPage() {
 
   const fetchQuestions = async () => {
     setIsLoading(true)
+    const today = new Date().toISOString().split('T')[0];
+
+    if (dailyQuestionsDate === today && Object.keys(storedQuestions).length > 0) {
+      console.log('Using stored questions:', storedQuestions);
+      setQuestions(storedQuestions);
+      setIsLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from('questions')
       .select('*')
-      .eq('category', initialSection)
     
     if (error) {
       console.error('Error fetching questions:', error)
@@ -227,7 +244,10 @@ export default function DailyQuestionsPage() {
       groupedQuestions[category] = categoryQuestions.slice(0, 5)
     })
 
+    console.log('Fetched and stored new questions:', groupedQuestions);
     setQuestions(groupedQuestions)
+    setStoredQuestions(groupedQuestions)
+    setDailyQuestionsDate(today);
     setIsLoading(false)
   }
 
